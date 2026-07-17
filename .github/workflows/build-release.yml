@@ -1,0 +1,64 @@
+name: build and release toolchains
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [armv5, armv7, x86, amd64, mips, mipsel]
+    steps:
+      - uses: actions/checkout@v4
+      - name: install Buildroot prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bc bison build-essential cpio file flex rsync unzip wget
+      - name: build and package SDK
+        run: ./scripts/build-toolchain.sh "${{ matrix.target }}"
+      - name: upload SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: muslforge-${{ matrix.target }}-aarch64-linux
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: muslforge-*-aarch64-linux
+          path: release-assets
+          merge-multiple: true
+      - name: create aggregate checksums
+        working-directory: release-assets
+        run: sha256sum *.tar.gz > SHA256SUMS
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${{ github.ref_name }}"
+          release-assets/*
+          --repo "${{ github.repository }}"
+          --generate-notes
+          --verify-tag
