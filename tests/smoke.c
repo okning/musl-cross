@@ -2,6 +2,6 @@
 
 int main(void)
 {
-    puts("muslforge smoke test");
+    puts("musl-cross smoke test");
     return 0;
 }

@@ -1,4 +1,4 @@
-# muslforge
+# musl-cross
 
 Reproducible, aarch64-hosted Linux cross-toolchain SDKs built with Buildroot and
 musl. The release archives contain compilers that **run on aarch64 Linux** and

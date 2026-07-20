@@ -60,7 +60,7 @@ trap 'rm -rf "${staging}"' EXIT
 tar -xzf "${output_dir}/images/${sdk_prefix}.tar.gz" -C "${staging}"
 cp "${output_dir}/smoke-test" "${staging}/${sdk_prefix}/"
 {
-  echo "project=muslforge"
+  echo "project=musl-cross"
   echo "target=${target}"
   echo "host=aarch64-linux"
   echo "buildroot=${BUILDROOT_VERSION}"
