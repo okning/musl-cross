@@ -13,14 +13,23 @@ case "${target}" in
     ;;
 esac
 
-if [[ $(uname -s) != Linux || $(uname -m) != aarch64 ]]; then
-  echo "error: SDK host binaries must be built natively on aarch64 Linux" >&2
+host_arch=$(uname -m)
+if [[ $(uname -s) != Linux ]]; then
+  echo "error: SDK host binaries must be built natively on Linux" >&2
   exit 1
 fi
+case "${host_arch}" in
+  aarch64|x86_64) ;;
+  *)
+    echo "error: unsupported SDK host architecture: ${host_arch}" >&2
+    echo "supported host architectures: aarch64, x86_64" >&2
+    exit 1
+    ;;
+esac
 
 download_dir=${DOWNLOAD_DIR:-"${project_root}/.cache/downloads"}
 buildroot_dir="${project_root}/buildroot-${BUILDROOT_VERSION}"
-output_dir="${project_root}/output/${target}"
+output_dir="${project_root}/output/${host_arch}/${target}"
 dist_dir="${project_root}/dist"
 archive="buildroot-${BUILDROOT_VERSION}.tar.xz"
 archive_path="${download_dir}/${archive}"
@@ -51,7 +60,7 @@ test -n "${cross_compile}"
   "${project_root}/tests/smoke.c" -o "${output_dir}/smoke-test"
 "${output_dir}/host/bin/${cross_compile}-readelf" -h "${output_dir}/smoke-test"
 
-sdk_prefix="musl-${target}-aarch64-linux"
+sdk_prefix="musl-${target}-${host_arch}-linux"
 make -C "${buildroot_dir}" O="${output_dir}" \
   BR2_SDK_PREFIX="${sdk_prefix}" sdk
 
@@ -62,7 +71,7 @@ cp "${output_dir}/smoke-test" "${staging}/${sdk_prefix}/"
 {
   echo "project=musl-cross"
   echo "target=${target}"
-  echo "host=aarch64-linux"
+  echo "host=${host_arch}-linux"
   echo "buildroot=${BUILDROOT_VERSION}"
   echo "libc=musl"
   echo "kernel_headers=2.6.32.71"

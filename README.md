@@ -1,8 +1,8 @@
 # musl-cross
 
-Reproducible, aarch64-hosted Linux cross-toolchain SDKs built with Buildroot and
-musl. The release archives contain compilers that **run on aarch64 Linux** and
-generate binaries for these targets:
+Reproducible Linux cross-toolchain SDKs built with Buildroot and musl. Each
+target is available with compilers that run natively on either **aarch64 Linux**
+or **x86_64 Linux** and generate binaries for these targets:
 
 | Release name | Target | Baseline CPU / ABI |
 | --- | --- | --- |
@@ -21,34 +21,36 @@ newer syscalls or provide fallbacks, and should be tested on the actual target.
 ## Using a release
 
 ```sh
-tar -xzf musl-armv5-aarch64-linux.tar.gz
-cd musl-armv5-aarch64-linux
+tar -xzf musl-armv5-x86_64-linux.tar.gz
+cd musl-armv5-x86_64-linux
 ./relocate-sdk.sh
 . ./environment-setup
 ${CC} hello.c -o hello
 ```
 
-The SDK must be unpacked and used on an aarch64 Linux host. Both C and C++ are
-enabled. The archive also contains `manifest.txt`, `sha256sums.txt`, and a
-statically linked `smoke-test` target binary.
+Choose the archive matching the host machine (`aarch64` or `x86_64`). Both C
+and C++ are enabled. The archive also contains `manifest.txt`,
+`sha256sums.txt`, and a statically linked `smoke-test` target binary.
 
 ## Building
 
 The project pins Buildroot in [`scripts/versions.env`](scripts/versions.env).
-On an aarch64 Linux machine with the Buildroot prerequisites installed:
+On an aarch64 or x86_64 Linux machine with the Buildroot prerequisites
+installed:
 
 ```sh
 ./scripts/build-toolchain.sh armv5
 ```
 
 Use `armv7`, `x86`, `amd64`, `mips`, or `mipsel` for the other targets. Output
-archives are written to `dist/`. GitHub Actions builds all six configurations
-on native `ubuntu-24.04-arm` runners. Pushing a tag such as `v0.1.0` creates a
-GitHub Release and attaches every SDK plus a top-level checksum file.
+archives are written to `dist/`. GitHub Actions builds all six target
+configurations for both host architectures on native runners. Pushing a tag
+such as `v0.1.0` creates a GitHub Release and attaches every SDK plus a
+top-level checksum file.
 
 ## Compatibility boundary
 
 Linux 2.6.32 is the configured target kernel ABI floor, not the minimum kernel
-for the aarch64 **host** that runs the compiler. AArch64 did not exist in Linux
-2.6.32, so this project deliberately does not claim that the SDK executables
-themselves run on a 2.6.32 aarch64 kernel.
+for the **host** that runs the compiler. In particular, AArch64 did not exist in
+Linux 2.6.32, so this project deliberately does not claim that the SDK
+executables themselves run on a 2.6.32 host kernel.
