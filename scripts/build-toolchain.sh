@@ -51,7 +51,7 @@ test -n "${cross_compile}"
   "${project_root}/tests/smoke.c" -o "${output_dir}/smoke-test"
 "${output_dir}/host/bin/${cross_compile}-readelf" -h "${output_dir}/smoke-test"
 
-sdk_prefix="muslforge-${target}-aarch64-linux"
+sdk_prefix="musl-${target}-aarch64-linux"
 make -C "${buildroot_dir}" O="${output_dir}" \
   BR2_SDK_PREFIX="${sdk_prefix}" sdk
 

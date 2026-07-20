@@ -21,8 +21,8 @@ newer syscalls or provide fallbacks, and should be tested on the actual target.
 ## Using a release
 
 ```sh
-tar -xzf muslforge-armv5-aarch64-linux.tar.gz
-cd muslforge-armv5-aarch64-linux
+tar -xzf musl-armv5-aarch64-linux.tar.gz
+cd musl-armv5-aarch64-linux
 ./relocate-sdk.sh
 . ./environment-setup
 ${CC} hello.c -o hello

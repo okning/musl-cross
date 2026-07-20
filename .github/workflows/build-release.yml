@@ -30,7 +30,7 @@ jobs:
       - name: upload SDK
         uses: actions/upload-artifact@v4
         with:
-          name: muslforge-${{ matrix.target }}-aarch64-linux
+          name: musl-${{ matrix.target }}-aarch64-linux
           path: |
             dist/*.tar.gz
             dist/*.sha256
@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: muslforge-*-aarch64-linux
+          pattern: musl-*-aarch64-linux
           path: release-assets
           merge-multiple: true
       - name: create aggregate checksums
