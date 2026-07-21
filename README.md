@@ -7,9 +7,9 @@ or **x86_64 Linux** and generate binaries for these targets:
 | Release name | Target | Baseline CPU / ABI |
 | --- | --- | --- |
 | `armv5` | 32-bit ARM | ARM926T, EABI, soft-float |
-| `armv7` | 32-bit ARM | Cortex-A7, EABIhf |
-| `x86` | 32-bit x86 | i686 |
-| `amd64` | 64-bit x86 | generic x86-64 |
+| `armv7` | 32-bit ARM | Cortex-A9, EABIhf, VFPv3-D16; no hardware divide requirement |
+| `x86` | 32-bit x86 | i486; no i586/i686, MMX, or SSE requirement |
+| `amd64` | 64-bit x86 | x86-64-v1; no AVX requirement |
 | `mips` | 32-bit big-endian MIPS | MIPS32, o32, soft-float |
 | `mipsel` | 32-bit little-endian MIPS | MIPS32, o32, soft-float |
 
@@ -47,6 +47,22 @@ archives are written to `dist/`. GitHub Actions builds all six target
 configurations for both host architectures on native runners. Pushing a tag
 such as `v0.1.0` creates a GitHub Release and attaches every SDK plus a
 top-level checksum file.
+
+Every build runs an architecture-specific compatibility gate against the
+compiler defaults, ELF headers and attributes, and the disassembly of a static
+musl smoke binary. The smoke binary deliberately exercises `calloc` and
+integer division so the check covers allocator and compiler-runtime paths, not
+only a trivial `puts` call. The enforced baselines are ARMv5TE/soft-float,
+ARMv7-A/VFPv3-D16/hard-float without hardware divide, i486, x86-64-v1, and
+MIPS32 Release 1/o32/soft-float in both byte orders. Builds fail if they expose
+a newer default or emit representative newer-ISA instructions.
+
+In particular, the ARMv7 compiler defaults to `-mcpu=cortex-a9`,
+`-mfpu=vfpv3-d16`, and `-mfloat-abi=hard`. This avoids the hardware divide and
+VFPv4 instructions enabled by the previous Cortex-A7/VFPv4 configuration
+while retaining EABIhf compatibility. The 32-bit x86 target is similarly
+lowered from i686 to i486 so it does not silently require conditional moves or
+SSE.
 
 ## Compatibility boundary
 

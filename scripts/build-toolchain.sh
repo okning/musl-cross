@@ -47,6 +47,46 @@ fi
 
 make -C "${buildroot_dir}" O="${output_dir}" \
   BR2_DEFCONFIG="${project_root}/configs/${target}_defconfig" defconfig
+
+require_config() {
+  local expected=$1
+
+  if ! grep -Fxq "${expected}" "${output_dir}/.config"; then
+    echo "error: resolved ${target} configuration is missing: ${expected}" >&2
+    exit 1
+  fi
+}
+
+case "${target}" in
+  armv5)
+    require_config 'BR2_GCC_TARGET_CPU="arm926ej-s"'
+    require_config 'BR2_GCC_TARGET_FLOAT_ABI="soft"'
+    ;;
+  armv7)
+    require_config 'BR2_GCC_TARGET_CPU="cortex-a9"'
+    require_config 'BR2_GCC_TARGET_FPU="vfpv3-d16"'
+    require_config 'BR2_GCC_TARGET_FLOAT_ABI="hard"'
+    ;;
+  x86)
+    require_config 'BR2_GCC_TARGET_ARCH="i486"'
+    ;;
+  amd64)
+    require_config 'BR2_GCC_TARGET_ARCH="x86-64"'
+    ;;
+  mips)
+    require_config 'BR2_ENDIAN="BIG"'
+    require_config 'BR2_GCC_TARGET_ARCH="mips32"'
+    require_config 'BR2_GCC_TARGET_ABI="32"'
+    require_config 'BR2_MIPS_SOFT_FLOAT=y'
+    ;;
+  mipsel)
+    require_config 'BR2_ENDIAN="LITTLE"'
+    require_config 'BR2_GCC_TARGET_ARCH="mips32"'
+    require_config 'BR2_GCC_TARGET_ABI="32"'
+    require_config 'BR2_MIPS_SOFT_FLOAT=y'
+    ;;
+esac
+
 make -C "${buildroot_dir}" O="${output_dir}" -j"$(nproc)" toolchain
 
 cross_compile=$(sed -n 's/^BR2_TOOLCHAIN_EXTERNAL_PREFIX="\(.*\)"/\1/p' "${output_dir}/.config")
@@ -59,6 +99,8 @@ test -n "${cross_compile}"
 "${output_dir}/host/bin/${cross_compile}-gcc" -static -Os \
   "${project_root}/tests/smoke.c" -o "${output_dir}/smoke-test"
 "${output_dir}/host/bin/${cross_compile}-readelf" -h "${output_dir}/smoke-test"
+"${project_root}/scripts/verify-compatibility.sh" "${target}" \
+  "${output_dir}/host/bin/${cross_compile}" "${output_dir}/smoke-test"
 
 sdk_prefix="musl-${target}-${host_arch}-linux"
 make -C "${buildroot_dir}" O="${output_dir}" \
@@ -76,6 +118,31 @@ cp "${output_dir}/smoke-test" "${staging}/${sdk_prefix}/"
   echo "libc=musl"
   echo "kernel_headers=2.6.32.71"
   echo "target_tuple=${cross_compile}"
+  case "${target}" in
+    armv5)
+      echo "cpu_baseline=arm926ej-s"
+      echo "isa_baseline=armv5te"
+      echo "float_abi=soft"
+      ;;
+    armv7)
+      echo "cpu_baseline=cortex-a9"
+      echo "isa_baseline=armv7-a"
+      echo "fpu_baseline=vfpv3-d16"
+      echo "float_abi=hard"
+      echo "hardware_divide=not-required"
+      ;;
+    x86)
+      echo "isa_baseline=i486"
+      ;;
+    amd64)
+      echo "isa_baseline=x86-64-v1"
+      ;;
+    mips|mipsel)
+      echo "isa_baseline=mips32-release-1"
+      echo "abi=o32"
+      echo "float_abi=soft"
+      ;;
+  esac
 } > "${staging}/${sdk_prefix}/manifest.txt"
 (
   cd "${staging}/${sdk_prefix}"

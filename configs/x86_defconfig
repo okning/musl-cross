@@ -1,5 +1,5 @@
 BR2_i386=y
-BR2_x86_i686=y
+BR2_x86_i486=y
 BR2_TOOLCHAIN_BUILDROOT_MUSL=y
 BR2_KERNEL_HEADERS_CUSTOM_TARBALL=y
 BR2_KERNEL_HEADERS_CUSTOM_TARBALL_LOCATION="https://cdn.kernel.org/pub/linux/kernel/v2.6/longterm/v2.6.32/linux-2.6.32.71.tar.xz"
