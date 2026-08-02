@@ -67,6 +67,11 @@ require_config() {
 }
 
 require_config "BR2_KERNEL_HEADERS_CUSTOM_TARBALL_LOCATION=\"${kernel_headers_url}\""
+if [[ ${target} == aarch64 ]]; then
+  require_config 'BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_3_10=y'
+else
+  require_config 'BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_REALLY_OLD=y'
+fi
 
 case "${target}" in
   arm|armv5)
