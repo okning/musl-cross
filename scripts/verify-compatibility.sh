@@ -5,14 +5,14 @@ target=${1:-}
 tool_prefix=${2:-}
 binary=${3:-}
 case "${target}" in
-  armv5|armv7|x86|amd64|mips|mipsel) ;;
+  arm|armv5|arm6|armv7|aarch64|x86|amd64|mips|mipsel|mips64|mips64el) ;;
   *)
-    echo "usage: $0 {armv5|armv7|x86|amd64|mips|mipsel} TOOL_PREFIX BINARY" >&2
+    echo "usage: $0 {arm|armv5|arm6|armv7|aarch64|x86|amd64|mips|mipsel|mips64|mips64el} TOOL_PREFIX BINARY" >&2
     exit 2
     ;;
 esac
 if [[ -z ${tool_prefix} || -z ${binary} ]]; then
-  echo "usage: $0 {armv5|armv7|x86|amd64|mips|mipsel} TOOL_PREFIX BINARY" >&2
+  echo "usage: $0 {arm|armv5|arm6|armv7|aarch64|x86|amd64|mips|mipsel|mips64|mips64el} TOOL_PREFIX BINARY" >&2
   exit 2
 fi
 
@@ -80,7 +80,7 @@ reject_instruction_except() {
 }
 
 case "${target}" in
-  armv5)
+  arm|armv5)
     require_text '-mcpu=arm926ej-s' '[[:space:]]-mcpu=[[:space:]]+arm926ej-s([[:space:]]|$)' "${target_options}"
     require_text '-mfloat-abi=soft' '[[:space:]]-mfloat-abi=[[:space:]]+soft([[:space:]]|$)' "${target_options}"
     require_text '32-bit ARM ELF' 'Class:[[:space:]]+ELF32' "${elf_header}"
@@ -93,6 +93,18 @@ case "${target}" in
       '[[:space:]](ldrex[a-z]*|strex[a-z]*|dmb|dsb|isb|movw|movt|sdiv|udiv|v[a-z0-9.]+)[[:space:]]' \
       '^__a_(barrier_v6|barrier_v7|cas_v6|cas_v7|gettp_cp15)$'
     ;;
+  arm6)
+    require_text '-mcpu=arm1136j-s' '[[:space:]]-mcpu=[[:space:]]+arm1136j-s([[:space:]]|$)' "${target_options}"
+    require_text '-mfloat-abi=soft' '[[:space:]]-mfloat-abi=[[:space:]]+soft([[:space:]]|$)' "${target_options}"
+    require_text '32-bit ARM ELF' 'Class:[[:space:]]+ELF32' "${elf_header}"
+    require_text 'ARM EABI soft-float flags' 'Flags:.*soft-float ABI' "${elf_header}"
+    require_text 'ARMv6 attributes' 'Tag_CPU_arch:[[:space:]]+v6' "${attributes}"
+    # musl keeps runtime-selected ARMv7 atomic helpers in the binary. ARMv7
+    # instructions are valid only inside those capability-gated helpers.
+    reject_instruction_except 'ARMv7+, hardware divide, or VFP instructions' \
+      '[[:space:]](dmb|dsb|isb|movw|movt|sdiv|udiv|v[a-z0-9.]+)[[:space:]]' \
+      '^__a_(barrier_v7|cas_v7)$'
+    ;;
   armv7)
     require_text '-mcpu=cortex-a9' '[[:space:]]-mcpu=[[:space:]]+cortex-a9([[:space:]]|$)' "${target_options}"
     require_text '-mfpu=vfpv3-d16' '[[:space:]]-mfpu=[[:space:]]+vfpv3-d16([[:space:]]|$)' "${target_options}"
@@ -103,6 +115,13 @@ case "${target}" in
     require_text 'VFPv3-D16 attributes' 'Tag_FP_arch:[[:space:]]+VFPv3-D16' "${attributes}"
     reject_instruction 'hardware divide instructions' '[[:space:]](sdiv|udiv)[[:space:]]'
     reject_instruction 'VFPv4 fused multiply instructions' '[[:space:]]v(fma|fms|fnma|fnms)([.]|[[:space:]])'
+    ;;
+  aarch64)
+    require_text '-mcpu=cortex-a53' '[[:space:]]-mcpu=[[:space:]]+cortex-a53([[:space:]]|$)' "${target_options}"
+    require_text '64-bit AArch64 ELF' 'Class:[[:space:]]+ELF64' "${elf_header}"
+    require_text 'AArch64 ELF machine' 'Machine:[[:space:]]+AArch64' "${elf_header}"
+    reject_instruction 'ARMv8.1 LSE atomic instructions' '[[:space:]](cas|casa|casal|casl|casp|caspa|caspal|caspl|ldadd|ldadda|ldaddal|ldaddl|ldclr|ldclra|ldclral|ldclrl|ldeor|ldeora|ldeoral|ldeorl|ldset|ldseta|ldsetal|ldsetl|ldsmax|ldsmin|ldumax|ldumin|swp|swpa|swpal|swpl)[bhl]?[[:space:]]'
+    reject_instruction 'SVE, pointer-authentication, or BTI instructions' '(%?z[0-9]+|%?p[0-9]+|[[:space:]](paci|pacd|auti|autd|xpaci|xpacd|bti)[a-z]*[[:space:]])'
     ;;
   x86)
     require_text '-march=i486' '[[:space:]]-march=[[:space:]]+i486([[:space:]]|$)' "${target_options}"
@@ -128,6 +147,19 @@ case "${target}" in
       require_text 'little-endian ELF' "Data:[[:space:]]+2's complement, little endian" "${elf_header}"
     fi
     reject_instruction 'MIPS32r2+ instructions' '[[:space:]](di|ei|ext|ins|rdhwr|rotr|rotrv|seb|seh|synci|wsbh)[[:space:]]'
+    ;;
+  mips64|mips64el)
+    require_text '-march=mips64' '[[:space:]]-march=ISA[[:space:]]+mips64([[:space:]]|$)' "${target_options}"
+    require_text '-mabi=64' '[[:space:]]-mabi=ABI[[:space:]]+64([[:space:]]|$)' "${target_options}"
+    require_text 'soft-float enabled' '[[:space:]]-msoft-float[[:space:]]+\[enabled\]' "${target_options}"
+    require_text '64-bit MIPS ELF' 'Class:[[:space:]]+ELF64' "${elf_header}"
+    require_text 'MIPS64 flags' 'Flags:.*mips64' "${elf_header}"
+    if [[ ${target} == mips64 ]]; then
+      require_text 'big-endian ELF' "Data:[[:space:]]+2's complement, big endian" "${elf_header}"
+    else
+      require_text 'little-endian ELF' "Data:[[:space:]]+2's complement, little endian" "${elf_header}"
+    fi
+    reject_instruction 'MIPS64r2+ instructions' '[[:space:]](dext|dins|drotr|drotr32|drotrv|rdhwr|synci)[[:space:]]'
     ;;
 esac
 

@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [armv5, armv7, x86, amd64, mips, mipsel]
+        target: [arm, armv5, arm6, armv7, aarch64, x86, amd64, mips, mipsel, mips64, mips64el]
         host:
           - arch: aarch64
             runner: ubuntu-24.04-arm

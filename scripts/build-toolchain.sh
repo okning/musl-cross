@@ -6,12 +6,21 @@ source "${project_root}/scripts/versions.env"
 
 target=${1:-}
 case "${target}" in
-  armv5|armv7|x86|amd64|mips|mipsel) ;;
+  arm|armv5|arm6|armv7|aarch64|x86|amd64|mips|mipsel|mips64|mips64el) ;;
   *)
-    echo "usage: $0 {armv5|armv7|x86|amd64|mips|mipsel}" >&2
+    echo "usage: $0 {arm|armv5|arm6|armv7|aarch64|x86|amd64|mips|mipsel|mips64|mips64el}" >&2
     exit 2
     ;;
 esac
+
+kernel_headers=2.6.32.71
+kernel_headers_url=https://cdn.kernel.org/pub/linux/kernel/v2.6/longterm/v2.6.32/linux-2.6.32.71.tar.xz
+if [[ ${target} == aarch64 ]]; then
+  # AArch64 was added after Linux 2.6.32; 3.10 is the oldest maintained
+  # long-term kernel line suitable for this target.
+  kernel_headers=3.10.108
+  kernel_headers_url=https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.10.108.tar.xz
+fi
 
 host_arch=$(uname -m)
 if [[ $(uname -s) != Linux ]]; then
@@ -57,15 +66,25 @@ require_config() {
   fi
 }
 
+require_config "BR2_KERNEL_HEADERS_CUSTOM_TARBALL_LOCATION=\"${kernel_headers_url}\""
+
 case "${target}" in
-  armv5)
+  arm|armv5)
     require_config 'BR2_GCC_TARGET_CPU="arm926ej-s"'
+    require_config 'BR2_GCC_TARGET_FLOAT_ABI="soft"'
+    ;;
+  arm6)
+    require_config 'BR2_GCC_TARGET_CPU="arm1136j-s"'
     require_config 'BR2_GCC_TARGET_FLOAT_ABI="soft"'
     ;;
   armv7)
     require_config 'BR2_GCC_TARGET_CPU="cortex-a9"'
     require_config 'BR2_GCC_TARGET_FPU="vfpv3-d16"'
     require_config 'BR2_GCC_TARGET_FLOAT_ABI="hard"'
+    ;;
+  aarch64)
+    require_config 'BR2_GCC_TARGET_CPU="cortex-a53"'
+    require_config 'BR2_GCC_TARGET_ABI="lp64"'
     ;;
   x86)
     require_config 'BR2_GCC_TARGET_ARCH="i486"'
@@ -83,6 +102,18 @@ case "${target}" in
     require_config 'BR2_ENDIAN="LITTLE"'
     require_config 'BR2_GCC_TARGET_ARCH="mips32"'
     require_config 'BR2_GCC_TARGET_ABI="32"'
+    require_config 'BR2_MIPS_SOFT_FLOAT=y'
+    ;;
+  mips64)
+    require_config 'BR2_ENDIAN="BIG"'
+    require_config 'BR2_GCC_TARGET_ARCH="mips64"'
+    require_config 'BR2_GCC_TARGET_ABI="64"'
+    require_config 'BR2_MIPS_SOFT_FLOAT=y'
+    ;;
+  mips64el)
+    require_config 'BR2_ENDIAN="LITTLE"'
+    require_config 'BR2_GCC_TARGET_ARCH="mips64"'
+    require_config 'BR2_GCC_TARGET_ABI="64"'
     require_config 'BR2_MIPS_SOFT_FLOAT=y'
     ;;
 esac
@@ -116,12 +147,17 @@ cp "${output_dir}/smoke-test" "${staging}/${sdk_prefix}/"
   echo "host=${host_arch}-linux"
   echo "buildroot=${BUILDROOT_VERSION}"
   echo "libc=musl"
-  echo "kernel_headers=2.6.32.71"
+  echo "kernel_headers=${kernel_headers}"
   echo "target_tuple=${cross_compile}"
   case "${target}" in
-    armv5)
+    arm|armv5)
       echo "cpu_baseline=arm926ej-s"
       echo "isa_baseline=armv5te"
+      echo "float_abi=soft"
+      ;;
+    arm6)
+      echo "cpu_baseline=arm1136j-s"
+      echo "isa_baseline=armv6"
       echo "float_abi=soft"
       ;;
     armv7)
@@ -130,6 +166,11 @@ cp "${output_dir}/smoke-test" "${staging}/${sdk_prefix}/"
       echo "fpu_baseline=vfpv3-d16"
       echo "float_abi=hard"
       echo "hardware_divide=not-required"
+      ;;
+    aarch64)
+      echo "cpu_baseline=cortex-a53"
+      echo "isa_baseline=armv8-a"
+      echo "abi=lp64"
       ;;
     x86)
       echo "isa_baseline=i486"
@@ -140,6 +181,11 @@ cp "${output_dir}/smoke-test" "${staging}/${sdk_prefix}/"
     mips|mipsel)
       echo "isa_baseline=mips32-release-1"
       echo "abi=o32"
+      echo "float_abi=soft"
+      ;;
+    mips64|mips64el)
+      echo "isa_baseline=mips64-release-1"
+      echo "abi=n64"
       echo "float_abi=soft"
       ;;
   esac

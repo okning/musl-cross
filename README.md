@@ -6,17 +6,24 @@ or **x86_64 Linux** and generate binaries for these targets:
 
 | Release name | Target | Baseline CPU / ABI |
 | --- | --- | --- |
-| `armv5` | 32-bit ARM | ARM926T, EABI, soft-float |
+| `arm` | Generic 32-bit ARM | ARM926EJ-S, ARMv5TE, EABI, soft-float |
+| `armv5` | 32-bit ARM | ARM926EJ-S, ARMv5TE, EABI, soft-float |
+| `arm6` | 32-bit ARM | ARM1136J-S, ARMv6, EABI, soft-float |
 | `armv7` | 32-bit ARM | Cortex-A9, EABIhf, VFPv3-D16; no hardware divide requirement |
+| `aarch64` | 64-bit ARM | Cortex-A53, ARMv8-A, LP64 |
 | `x86` | 32-bit x86 | i486; no i586/i686, MMX, or SSE requirement |
 | `amd64` | 64-bit x86 | x86-64-v1; no AVX requirement |
 | `mips` | 32-bit big-endian MIPS | MIPS32, o32, soft-float |
 | `mipsel` | 32-bit little-endian MIPS | MIPS32, o32, soft-float |
+| `mips64` | 64-bit big-endian MIPS | MIPS64, n64, soft-float |
+| `mips64el` | 64-bit little-endian MIPS | MIPS64, n64, soft-float |
 
-All target libc/sysroot builds use Linux 2.6.32.71 UAPI headers. This prevents
-the toolchain from assuming APIs newer than Linux 2.6.32. It does not guarantee
-that every third-party program will run on that kernel: applications must avoid
-newer syscalls or provide fallbacks, and should be tested on the actual target.
+All target libc/sysroot builds except AArch64 use Linux 2.6.32.71 UAPI headers.
+AArch64, which was introduced after Linux 2.6.32, uses Linux 3.10.108 headers.
+This prevents each toolchain from assuming APIs newer than its stated kernel
+floor. It does not guarantee that every third-party program will run on that
+kernel: applications must avoid newer syscalls or provide fallbacks, and should
+be tested on the actual target.
 
 ## Using a release
 
@@ -42,8 +49,9 @@ installed:
 ./scripts/build-toolchain.sh armv5
 ```
 
-Use `armv7`, `x86`, `amd64`, `mips`, or `mipsel` for the other targets. Output
-archives are written to `dist/`. GitHub Actions builds all six target
+Use `arm`, `arm6`, `armv7`, `aarch64`, `x86`, `amd64`, `mips`, `mipsel`,
+`mips64`, or `mips64el` for the other targets. Output archives are written to
+`dist/`. GitHub Actions builds all eleven target
 configurations for both host architectures on native runners. Pushing a tag
 such as `v0.1.0` creates a GitHub Release and attaches every SDK plus a
 top-level checksum file.
@@ -53,9 +61,10 @@ compiler defaults, ELF headers and attributes, and the disassembly of a static
 musl smoke binary. The smoke binary deliberately exercises `calloc` and
 integer division so the check covers allocator and compiler-runtime paths, not
 only a trivial `puts` call. The enforced baselines are ARMv5TE/soft-float,
-ARMv7-A/VFPv3-D16/hard-float without hardware divide, i486, x86-64-v1, and
-MIPS32 Release 1/o32/soft-float in both byte orders. Builds fail if they expose
-a newer default or emit representative newer-ISA instructions.
+ARMv6/soft-float, ARMv7-A/VFPv3-D16/hard-float without hardware divide,
+ARMv8-A/LP64, i486, x86-64-v1, MIPS32 Release 1/o32/soft-float, and MIPS64
+Release 1/n64/soft-float in both byte orders. Builds fail if they expose a
+newer default or emit representative newer-ISA instructions.
 
 In particular, the ARMv7 compiler defaults to `-mcpu=cortex-a9`,
 `-mfpu=vfpv3-d16`, and `-mfloat-abi=hard`. This avoids the hardware divide and
@@ -66,7 +75,7 @@ SSE.
 
 ## Compatibility boundary
 
-Linux 2.6.32 is the configured target kernel ABI floor, not the minimum kernel
-for the **host** that runs the compiler. In particular, AArch64 did not exist in
-Linux 2.6.32, so this project deliberately does not claim that the SDK
-executables themselves run on a 2.6.32 host kernel.
+Linux 2.6.32 is the configured target kernel ABI floor for all targets except
+AArch64, whose floor is Linux 3.10.108. These target floors are not minimum
+kernel versions for the **host** that runs the compiler. In particular, this
+project does not claim that AArch64-hosted SDK executables run on Linux 2.6.32.
