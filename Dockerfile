@@ -47,6 +47,7 @@ RUN --mount=type=bind,from=sdk-archives,source=/,target=/tmp/sdk,ro \
         cd "/opt/musl-cross/${target}"; \
         ./relocate-sdk.sh; \
         . ./environment-setup; \
+        if [[ "${CXX}" == no ]]; then CXX="${CROSS_COMPILE}g++"; fi; \
         "${CC}" --version >/dev/null; \
         "${CXX}" --version >/dev/null; \
         test -x ./smoke-test; \

@@ -46,6 +46,9 @@ sdk_dir="/opt/musl-cross/${target}"
 # The Buildroot environment file sets CC/CXX and the complete binutils paths.
 # shellcheck disable=SC1091
 source "${sdk_dir}/environment-setup"
+if [[ ${CXX} == no ]]; then
+  export CXX="${CROSS_COMPILE}g++"
+fi
 
 if (( $# == 0 )); then
   set -- bash
