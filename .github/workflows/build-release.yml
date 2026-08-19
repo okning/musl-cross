@@ -23,10 +23,29 @@ jobs:
             runner: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: install Buildroot prerequisites
+      - name: verify Buildroot prerequisites
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes bc bison build-essential cpio file flex rsync unzip wget
+          declare -A package_for=(
+            [gcc]=build-essential
+            [g++]=build-essential
+            [make]=build-essential
+          )
+          declare -A missing_packages=()
+          for command in bc bison cpio file flex rsync unzip wget gcc g++ make; do
+            if ! command -v "${command}" >/dev/null; then
+              package=${package_for[${command}]:-${command}}
+              missing_packages[${package}]=1
+            fi
+          done
+          if (( ${#missing_packages[@]} )); then
+            sudo apt-get \
+              -o Acquire::Retries=3 \
+              -o Acquire::http::Timeout=30 \
+              -o Acquire::https::Timeout=30 \
+              update
+            sudo apt-get install --yes "${!missing_packages[@]}"
+          fi
       - name: build and package SDK
         run: ./scripts/build-toolchain.sh "${{ matrix.target }}"
       - name: upload SDK
