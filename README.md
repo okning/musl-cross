@@ -37,7 +37,8 @@ ${CC} hello.c -o hello
 
 Choose the archive matching the host machine (`aarch64` or `x86_64`). Both C
 and C++ are enabled. The archive also contains `manifest.txt`,
-`sha256sums.txt`, and a statically linked `smoke-test` target binary.
+`sha256sums.txt`, and statically linked `smoke-test` and `smoke-test-cxx`
+target binaries.
 
 ## Using the container image
 

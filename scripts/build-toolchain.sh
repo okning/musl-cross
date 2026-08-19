@@ -67,6 +67,8 @@ require_config() {
 }
 
 require_config "BR2_KERNEL_HEADERS_CUSTOM_TARBALL_LOCATION=\"${kernel_headers_url}\""
+require_config 'BR2_TOOLCHAIN_BUILDROOT_CXX=y'
+require_config 'BR2_INSTALL_LIBSTDCPP=y'
 if [[ ${target} == aarch64 ]]; then
   require_config 'BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_3_10=y'
 else
@@ -134,7 +136,10 @@ test -n "${cross_compile}"
 
 "${output_dir}/host/bin/${cross_compile}-gcc" -static -Os \
   "${project_root}/tests/smoke.c" -o "${output_dir}/smoke-test"
+"${output_dir}/host/bin/${cross_compile}-g++" -static -Os \
+  "${project_root}/tests/smoke.cpp" -o "${output_dir}/smoke-test-cxx"
 "${output_dir}/host/bin/${cross_compile}-readelf" -h "${output_dir}/smoke-test"
+"${output_dir}/host/bin/${cross_compile}-readelf" -h "${output_dir}/smoke-test-cxx"
 "${project_root}/scripts/verify-compatibility.sh" "${target}" \
   "${output_dir}/host/bin/${cross_compile}" "${output_dir}/smoke-test"
 
@@ -146,6 +151,7 @@ staging=$(mktemp -d)
 trap 'rm -rf "${staging}"' EXIT
 tar -xzf "${output_dir}/images/${sdk_prefix}.tar.gz" -C "${staging}"
 cp "${output_dir}/smoke-test" "${staging}/${sdk_prefix}/"
+cp "${output_dir}/smoke-test-cxx" "${staging}/${sdk_prefix}/"
 {
   echo "project=musl-cross"
   echo "target=${target}"
