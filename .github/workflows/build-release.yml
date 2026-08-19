@@ -37,7 +37,7 @@ jobs:
             dist/*.tar.gz
             dist/*.sha256
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
 
   release:
     name: publish GitHub Release
@@ -101,6 +101,8 @@ jobs:
       - name: build and push image by digest
         id: image
         uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           context: .
           platforms: ${{ matrix.host.platform }}
