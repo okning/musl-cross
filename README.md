@@ -39,6 +39,40 @@ Choose the archive matching the host machine (`aarch64` or `x86_64`). Both C
 and C++ are enabled. The archive also contains `manifest.txt`,
 `sha256sums.txt`, and a statically linked `smoke-test` target binary.
 
+## Using the container image
+
+Each tagged release also publishes `ghcr.io/okning/musl-cross:<version>` and
+updates `ghcr.io/okning/musl-cross:latest`. The image supports both
+`linux/amd64` and `linux/arm64`; each platform contains all eleven toolchains
+built natively for that Linux host architecture.
+
+Select a toolchain with `MUSL_TARGET`, mount the source tree at `/work`, and use
+the convenience `cc` or `c++` command:
+
+```sh
+docker run --rm \
+  -e MUSL_TARGET=armv7 \
+  -v "$PWD:/work" \
+  ghcr.io/okning/musl-cross:latest \
+  cc -static -Os hello.c -o hello-armv7
+```
+
+For build systems that consume compiler environment variables, run a shell in
+the selected environment. `CC`, `CXX`, binutils variables, `PATH`, and sysroot
+variables are loaded from the corresponding Buildroot SDK:
+
+```sh
+docker run --rm \
+  -e MUSL_TARGET=mipsel \
+  -v "$PWD:/work" \
+  ghcr.io/okning/musl-cross:latest \
+  bash -c 'make CC="$CC" CXX="$CXX"'
+```
+
+Run the image with `targets` to print the accepted `MUSL_TARGET` values. Docker
+on macOS can run this Linux image, but the included compilers remain
+Linux-hosted executables rather than native macOS binaries.
+
 ## Building
 
 The project pins Buildroot in [`scripts/versions.env`](scripts/versions.env).
