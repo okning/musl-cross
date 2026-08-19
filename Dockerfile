@@ -9,6 +9,8 @@ ARG TARGETARCH
 ARG VERSION=dev
 ARG REVISION=unknown
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 LABEL org.opencontainers.image.title="musl-cross" \
       org.opencontainers.image.description="Linux-hosted musl cross-compilers for ARM, AArch64, x86, and MIPS targets" \
       org.opencontainers.image.source="https://github.com/okning/musl-cross" \
